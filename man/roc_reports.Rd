@@ -9,7 +9,8 @@ roc_reports(
   markers_table,
   selected_combinations = NULL,
   single_markers = NULL,
-  case_class
+  case_class,
+  deal_NA = "impute"
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ roc_reports(
 \item{single_markers}{a character vector that specifies the single markers of interest.}
 
 \item{case_class}{a character that specifies which of the two classes of the dataset is the case class.}
+
+\item{deal_NA}{a character that specifies how to treat missing values. With 'impute' NAs of each marker are substituted with the median of that given marker values in the class that observation belongs to. With 'remove' the whole observations containing a NA are removed'.}
 }
 \value{
 a named list containing 3 objects: "Plot", "Metrics" and "Models".
@@ -38,9 +41,10 @@ This function trains a logistic regression model for each combination and return
 }
 }
 \examples{
+\dontrun{
 demo_data # combiroc built-in demo data (proteomics data from Zingaretti et al. 2012 - PMC3518104)
 
-combs <- combi(data= demo_data, signalthr=450, combithr=1)  # compute combinations
+combs <- combi(data= demo_data, signalthr=450, combithr=1, case_class='A')  # compute combinations
 
 
 # To train logistic regression models on each selected combinations and
@@ -54,4 +58,5 @@ reports$Plot  # Shows the ROC curves
 reports$Metrics # Shows the ROC metrics
 reports$Models # show models
 reports$reports$Models$`Combination 11` # show model trained with Combination 11
+}
 }

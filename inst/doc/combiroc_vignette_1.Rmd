@@ -1,29 +1,20 @@
 ---
-title: "Guide to CombiROC package"
-subtitle: |
-  | Selection and ranking of omics biomarkers combinations made easy.  
+title: "Guide to CombiROC package - Standard workflow"
 author: "Ivan Ferrari, Riccardo L. Rossi"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   html_document:
-    toc: true 
+    toc: yes
     df_print: paged
-vignette: >
-  %\VignetteIndexEntry{Quick guide to CombiROC}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+subtitle: "| Selection and ranking of omics biomarkers combinations made easy.  \n"
+vignette: |
+  %\VignetteIndexEntry{Quick guide to CombiROC} 
+  %\usepackage[utf8]{inputenc}
+  %\VignetteEngine{knitr::knitr}
 ---
 
-```{r, include = FALSE}
-#library(httr)
-#knitr::opts_chunk$set(comment = "#>", collapse = TRUE)
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ```{r setup, include=FALSE}
-# library(combiroc)
-library(devtools)
-load_all()
+library(combiroc)
 ```
 
 # Summary {#top}
@@ -32,7 +23,7 @@ Powerful biomarkers are important tools in diagnostic, clinical and research set
 
 # The complete workflow
 
-The aim of this document is to show the whole CombiROC workflow to get you up and running as quickly as possible with this package. To do so we're going to use the proteomic dataset from [Zingaretti et al. 2012](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3518104/) containing multi-marker signatures for Autoimmune Hepatitis (AIH) for samples clinically diagnosed as “abnormal” (class A) or "normal" (class B). The scope of the workflow is to first find the markers combinations, then to assess their performance in classifying samples of the dataset.
+The aim of this document is to show the whole CombiROC workflow for biomarkers analysis to get you up and running as quickly as possible with this package. To do so we're going to use the proteomic dataset from [Zingaretti et al. 2012](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3518104/) containing multi-marker signatures for Autoimmune Hepatitis (AIH) for samples clinically diagnosed as “abnormal” (class A) or "normal" (class B). The scope of the workflow is to first find the markers combinations, then to assess their performance in classifying samples of the dataset.
 
 __Note:__ if you use CombiROC in your research, please cite:
 
@@ -51,16 +42,24 @@ The dataset to be analysed should be in text format, which can be separated by c
 ## Data loading {#load}
 
 The `load_data()` function uses a customized **read.table()** function that checks the conformity of the dataset format. If all the checks are passed, marker-related columns are reordered alphabetically, depending on marker names (this is necessary for a proper computation of combinations), and it imposes "Class" as the name of the second column. The loaded dataset is here assigned to the "*data*" object.
-Please note that `load_data()` takes the semicolumn (";") as default separator: if the dataset to be loaded has a different separator, i.e. a comma (","), is necessary to specify it in the argument `sep`. The code below shows how to load a data set contained in the "data" folder (remember to adjust the path according to your current working directory):
+Please note that `load_data()` takes the semicolumn (";") as default separator: if the dataset to be loaded has a different separator, i.e. a comma (","), is necessary to specify it in the argument `sep`. The code below shows how to load a data set contained in the "data" folder (remember to adjust the path according to your current working directory).
 
+First of all, load the package
+```{r}
+library(combiroc)
+```
+
+Then load the data. To do so you can use the function `load_data()` if you have a correctly formatted dataset ready:
 ```{r, eval=FALSE}
 data <- load_data("./data/demo_data.csv")
 ```
-We are going to use an AIH demo data set, that has been included in CombiROC package and can be directly called as `demo_data`. 
+
+Now, we are going to use an AIH demo data set, that has been included in CombiROC package and can be directly called as `demo_data`. 
 ```{r}
 data <- demo_data
 head(data)
 ```
+NB: combiroc is able to deal with missing values both by removing the samples with NA values or imputing the values given the median signal of the class (see ?roc_reports() deal_NA parameter). combiroc is not meant to work with negative values. We recommend to preprocess the data in order to have for all the markers, and for all the sample, a numeric signal values higher or equal to 0 BEFORE using combiroc.
 
 ## Exploring the data
 
@@ -69,7 +68,7 @@ Box plots are a nice option to observe the distribution of measurements in each 
 
 Data in long format are required for the plotting functions of the package and for any other Tidyverse-oriented applications. 
 
-The __data__ object in the original wide format can be thus transformed into the reshaped long format __data_long__ object, and further used. See also the section ["Code snippets"](#snipp) for some plotting examples taking advantage of the reshaped format.
+The __data__ object in the original wide format can be thus transformed into the reshaped long format __data_long__ object, and further used. 
 
 ```{r}
 data_long <- combiroc_long(data)
@@ -125,7 +124,7 @@ distr <- markers_distribution(data_long, case_class = 'A',
                               boxplot_lim = 2000)
 ```
 
-### The __distr__ object
+## The __distr__ object
 
 The __distr__ object contains the following elements: 
 
@@ -135,7 +134,7 @@ The __distr__ object contains the following elements:
 - a density plot for case and control classes
 - a summary with a few statistics. 
 
-Once the `markers_distributions()` function is run, all the abve elements can be plotted or displayed individually. Let's see each one of them
+Once the `markers_distributions()` function is run, all the above elements can be plotted or displayed individually. Let's see each one of them
 
 ### Boxplot
 
@@ -146,12 +145,16 @@ distr$Boxplot
 
 ### The ROC curve for all markers and its coordinates
 
-The __ROC__ curve shows how many real positive samples would be found positive (sensitivity, or SE) and how many real negative samples would be found negative (specificity, or SP) in function of signal threshold. Please note that the _False Positive Rate_ (i.e. _1 - specificity_) is plotted on the x-axis. These SE and SP are refereed to the signal intensity threshold considering _all_ the markers together; they are _not_ the SE and SP of a single marker/combination computed by the `se_sp()` function further discussed in the **Sensitivity and specificity** paragraph.
-```{r, ROC}
+The __ROC__ curve shows how many real positive samples would be found positive (sensitivity, or SE) and how many real negative samples would be found negative (specificity, or SP) in function of signal threshold. Please note that the _False Positive Rate_ (i.e. _1 - specificity_) is plotted on the x-axis. These SE and SP are refereed to the signal intensity threshold considering _all_ the markers together; they are _not_ the SE and SP of a single marker/combination computed by the 'combi()` function further discussed in the **Combinatorial analyisis, sensitivity and specificity** paragraph.
+```{r eval=FALSE}
 distr$ROC
 ```
+```{r echo=FALSE, fig.align = "center"}
+mywd <- getwd()
+knitr::include_graphics(paste0(mywd, "/roc_curve_vign1.png"), dpi = 2, rel_path = getOption("knitr.graphics.rel_path", FALSE))
+```
 
-The __Coord__ is a dataframe that contains the coordinates of the above described "ROC" (threshold, SP and SE) that have at least a minimun SE (min_SE) and a minimum SP (min_SP): this two threshold are set by default at `min_SE = 40` and `min_SP = 80`, but they can be set manually by specifying different values. The Youden index is also computed: this is the Youden's J statistic capturing the performance of a dichotomous diagnostic test, with higher values for better performance ( $J = SE + SP -1$).
+The __Coord__ is a dataframe that contains the coordinates of the above described "ROC" (threshold, SP and SE) that have at least a minimun SE (min_SE) and a minimum SP (min_SP): this two threshold are set by default at `min_SE = 0` and `min_SP = 0`, but they can be set manually by specifying different values as shown in the example. The Youden index is also computed: this is the Youden's J statistic capturing the performance of a dichotomous diagnostic test, with higher values for better performance ( $J = SE + SP -1$).
 ```{r, coord1}
 head(distr$Coord, n=10)
 ```
@@ -159,7 +162,7 @@ head(distr$Coord, n=10)
 ### The density plot and suggested signal threshold {#dens}
 
 The __Density_plot__ shows the distribution of the signal intensity values for both the classes. In addition, the function allows the user to set both the y_lim and x_lim values to provide a better visualization.
-One important feature of the density plot is that it calculates a possible __signal intensity threshold:__ in case of lack of *a priori* knowedge of the threshold the user can set the argument `signalthr_prediction = TRUE` in the `markers_distribution()` function. In this way the function calculates a "suggested signal threshold" that corresponds to the median of the signal threshold values (in __Coord__) at which SE and SP are greater or equal to their set minimal values (min_SE and min_SP). This threshold is added to the "Density_plot" object as a dashed black line and a number. The use of the median allows to pick a threshold whose SE/SP are not too close to the limits (min_SE and min_SP), but it is recommended to always inspect "Coord" and choose the most appropriate signal threshold by considering SP, SE and Youden index.
+One important feature of the density plot is that it calculates a possible __signal intensity threshold:__ in case of lack of *a priori* knowedge of the threshold the user can set the argument `signalthr_prediction = TRUE` in the `markers_distribution()` function. In this way the function calculates a "suggested signal threshold" that corresponds to the signal threshold value associated to the highest Youden index (in __Coord__), at which SE and SP are greater or equal to their set minimal values (min_SE and min_SP). This threshold is added to the "Density_plot" object as a dashed black line and a number. The use of the Youden index allows to pick a threshold with the best SE/SP setting, but it is recommended to always inspect "Coord" and choose the most appropriate signal threshold by considering SP, SE and Youden index.
 
 This suggested signal threshold can be used as __signalthr__ argument of the `combi()` function further in the workflow.
 
@@ -175,38 +178,31 @@ distr$Density_summary
 ```
 
 
-## Combinatorial analysis {#combi}
+## Combinatorial analysis, sensitivity and specificity {#combi}
 
 `combi()` function works on the dataset initially loaded. It computes the marker combinations and counts their corresponding positive samples for each class (once thresholds are selected). A sample, to be considered positive for a given combination, must have a value higher than a given signal threshold (signalthr) for at least a given number of markers composing that combination (combithr). 
 
 As mentioned before, `signalthr` should be set depending on the guidelines and characteristics of the methodology used for the analysis or by an accurate inspection of signal intensity distribution. In case of lack of specific guidelines, one should set the value `signalthr` as suggested by the `distr$Density_plot` as described in the previous section. 
 
-In this vignette `signalthr` is set at __450__ while `combithr` is set at __1__. We are setting this at 450 (instead of __407__ as suggested by the `distr$Density_plot`) in order to reproduce the results reported in [Mazzara et. al 2017](https://www.nature.com/articles/srep45477) (the original CombiROC paper) or in [Bombaci & Rossi 2019](https://link.springer.com/protocol/10.1007%2F978-1-4939-9164-8_16) as well as in the tutorial of the web app with default thresholds.
+In this vignette `signalthr` is set at __450__ while `combithr` is set at __1__. We are setting this at 450 (instead of __328.5__ as suggested by the `distr$Density_plot`) in order to reproduce the results reported in [Mazzara et. al 2017](https://www.nature.com/articles/srep45477) (the original CombiROC paper) or in [Bombaci & Rossi 2019](https://doi.org/10.1007/978-1-4939-9164-8_16) as well as in the tutorial of the web app with default thresholds.
 
-`combithr`, instead, should be set exclusively depending on the needed stringency: __1__ is the less stringent and most common choice (meaning that _at least one_ marker in a combination needs to reach the threshold). The obtained __tab__ object is a dataframe of all the combinations obtained with the chosen parameters. 
+`combithr`, instead, should be set exclusively depending on the needed stringency: __1__ is the less stringent and most common choice (meaning that _at least one_ marker in a combination needs to reach the threshold). 
 
-```{r}
-tab <- combi(data, signalthr = 450, combithr = 1)
-head(tab, n=20)
-```
-
-## Sensitivity and specificity {#sesp}
-
-Once all the combinations are computed, `se_sp()` function takes as inputs the loaded data `data` and the previously obtained set of combinations (`tab`) to calculate:
+Once all the combinations are computed, the function calculates:
 
 - Sensitivity (SE) and specificity (SP) of each combination for each class;
-- the number of markers composing each combination (#Markers). 
+- the number of markers composing each combination (n_markerrs). 
 
-SE of case class ("A") is calculated dividing the number of positive samples by the total sample of case class (% of positive "A" samples), while case class SP is calculated subtracting SE to 100 (% of negative "A" samples).
+SE of is calculated dividing the number of detected positive samples for case class by the total sample of case class (% of positive "A" samples).
 
-SE of control class ("B") is calculated dividing the number of positive samples by the total sample of control class (% of positive "B" samples), while SP is calculated subtracting SE to 100 (% of negative "B" samples).
+SP of control class ("B") is calculated by subtracting the percentage of positive samples for control class in the total sample of control class to 100 (100 - % of positive "B" samples).
 
-Thus, the SE of a given combination (capability to find real positives/cases) corresponds to the SE of the case class (in this case "A"), while its SP (capability to exclude real negatives/controls) corresponds to the SP of the control class (in this case "B").
-The obtained value  of SE, SP and number of markers are assigned to "markers" `mks` dataframe. 
+NB: with `max_length` is possible to set the maximum number of markers allowed to compose a combination (in the example the computed combinations will be composed at most by 3 markers instead of 5). This parameter can be very useful in case of a huge number of markers (e.g. >20) in order to drastically reduce the number of possible combinations, making the calculation computationally more manageable by removing the longest ones (less important from the diagnostic point of view). 
 
+The obtained __tab__ object is a dataframe of all the combinations obtained with the chosen parameters, the obtained value  of SE, SP and number of markers. 
 ```{r}
-mks <- se_sp(data, tab)
-mks
+tab <- combi(data, signalthr = 450, combithr = 1, case_class='A', max_length = 3)
+head(tab, n=20)
 ```
 ## Selection of combinations
 
@@ -216,16 +212,14 @@ $$
 $$
 The user can also set (not mandatory) a minimal value of SE and/or SP that a combination must have to be selected, i.e. to be considered as _"gold" combinations_.
 
-A possibility to overview how single markers and all combinations are distributed in the SE - SP ballpark is to plot them with the bubble chart code suggested in the Additional Tips&Tricks section (see: [Bubble plot of all combinations](#bubble)) starting from the `mks` dataframe obtained with the `se_sp()` function (see above).
+A possibility to overview how single markers and all combinations are distributed in the SE - SP ballpark is to plot them with the bubble chart code suggested in the Additional Tips&Tricks section (see: [Bubble plot of all combinations](#bubble)) starting from the `tab` dataframe obtained with the `combi()` function (see above).
 
 The bigger the bubble, the more markers are in the combination: looking at the size and distribution of bubbles across SE and SP values is useful to anticipate how effective will be the combinations in the ranking. Setting no cutoffs (i.e. SE = 0 and SP = 0), all single markers and combinations (all bubbles) will be considered as _"gold" combinations_ and ranked in the next passage.
 
 In the the example below the minimal values of SE and SP are set, respectively, to 40 and 80, in order to reproduce the gold combinations selection reported in [Mazzara et. al 2017](https://www.nature.com/articles/srep45477). The obtained values of combinations, ranked according to Youden index, are stored in the "ranked markers" `rmks` object containing the `table` dataframe and the `bubble_chart` plot that can be accessed individually with the `$` operator.
 
 ```{r}
-rmks <- ranked_combs(data, mks, 
-                     case_class = 'A', 
-                     min_SE = 40, min_SP = 80)
+rmks <- ranked_combs(tab, min_SE = 40, min_SP = 80)
 rmks$table
 ```
 
@@ -321,38 +315,40 @@ A new feature of the CombiROC package (not present in the CombiROC tool Shiny ap
 
 The unclassified data set must be similar to the data set used for the previous combinatorial analysis ( _i.e._ of the same nature and with the same markers, but obviously _without_ the 'Class' column).
 
-To load datasets with unclassified samples a specific `load_unclassified_data()` function was implemented. This function is analogue to `load_data()` since it loads the same kind of files and it performs the same format checks, with the exception of the _Class_ column which is not present in an unclassified datasets and thus not required.  
+To load datasets with unclassified samples `labelled_data` in `load_data()` function must be set to _FALSE_. In this way the function loads the same kind of files and it performs the same format checks shown above, with the exception of the _Class_ column which is not present in an unclassified datasets and thus not checked.  
 
 For purely demonstrative purposes, in the following example a "synthetic" unclassified data set ('data/unclassified_proteomic_data.csv') was used: it was obtained by randomly picking 20 samples from the already classified data set (the __data__). The loaded unclassified sample is here assigned to the __unc_data__ object.  
 Please note that this unclassified data set lacks the "Class" column but has a Patient.ID column which actually allows the identification of the class __but sample names here are not used in the workflow and have labeling purposes to check the prediction outcomes__ (a "no" prefix identifies healthy/normal subjects while the absence of the prefix identifies affected/abnormal subjects).
 
 ```{r, eval=FALSE}
-unc_data <- load_unclassified_data(data = './data/demo_unclassified_data.csv', sep = ',')
+unc_data <- load_data(data = './data/demo_unclassified_data.csv', sep = ',', labelled_data = F)
 ```
 This very same dataset has been included in CombiROC package as an unclassified demo dataset, which can be directly called typing `demo_unclassified_data`. 
 ```{r}
 head(demo_unclassified_data)
 ```
 
-The prediction of the class can be achieved with `classify()`: this function applies the models previously calculated on a classified data set working as training dataset, to the unclassified dataset and classifies the samples accordingly to the prediction probability and optimal cutoff as shown in the [Under the hood](#hood) section.
 
-This `classify()` function takes as inputs:
+The prediction of the class can be achieved with `combi_score()`: by setting `classify`=TRUE, this function applies the models previously calculated on a classified data set working as training dataset, to the unclassified dataset and classifies the samples accordingly to the prediction probability and optimal cutoff as shown in the [Under the hood](#hood) section.
+
+This `combi_score()` function takes as inputs:
 
 - the unclassified data set containing the new samples to be classified (`unc_data`);
 - the list of models `reports$Models` that have been previously computed by `roc_reports()` (*reports$Models*);
 - the list of metrics that have been previously computed by `roc_reports()` (*reports$Metrics*).
 
-In addition the user can set the labels of the predicted class (setting `Positive_class` and `Negative_class`), otherwise they will be __1__ for positive samples and __0__ for the negative samples by default (see the rule shown in the end of the **Results explanation** section). Here we are setting `Positive_class = "affected"` and `Negative_class = "healthy"`
+The user can set the labels of the predicted class (setting `Positive_class` and `Negative_class`), otherwise they will be __1__ for positive samples and __0__ for the negative samples by default (see the rule shown in the end of the **Results explanation** section). Here we are setting `Positive_class = "affected"` and `Negative_class = "healthy"`
 
-The function returns a data.frame (`cl_data` in the example below), whose columns contain the predicted class for each sample according to the models used (originally in `reports$Models`); here we are still usign __Marker1__, __Combination 11__ and __Combination 15__. 
+The function returns a data.frame (`cl_data` in the example below), whose columns contain the predicted class for each sample according to the models used (originally in `reports$Models`); here we are still using __Marker1__, __Combination 11__ and __Combination 15__. 
 
 ```{r}
 unc_data <- demo_unclassified_data
-cl_data <- classify(unc_data, 
-                    Models =  reports$Models, 
-                    Metrics = reports$Metrics, 
-                    Positive_class = "abnormal", 
-                    Negative_class = "normal")
+cl_data <- combi_score(unc_data, 
+                       Models =  reports$Models, 
+                       Metrics = reports$Metrics, 
+                       Positive_class = "abnormal", 
+                       Negative_class = "normal",
+                       classify = TRUE)
 ```
 
 As can be observed comparing the outcome in the dataframe with the tag on samples' names, the single marker __Marker1__ is not 100% efficient in correctly predicting the class (see mismatch in second row, where the _normal_ sample "no AIH126" is classified as _abnormal_ by Marker1); instead, both Combination 11 and 15 correctly assign it to the right class.
@@ -366,7 +362,18 @@ Thus, each column of the prediction dataframe contains the prediction outcome of
 cl_data$index
 cl_data$`Combination 11`
 ```
+In addition, by setting `classify`=FALSE, `combi_score()` can be exploited to easily retrieve the predicted probabilities of each combination (p(x) a.k.a 'combi score') in unclassified datasets.
 
+```{r}
+unc_data <- demo_unclassified_data
+cs_data <- combi_score(unc_data, 
+                       Models =  reports$Models, 
+                       Metrics = reports$Metrics, 
+                       Positive_class = "abnormal", 
+                       Negative_class = "normal",
+                       classify = FALSE)
+cs_data
+```
 # Ancillary functions {#ancill}
 
 ## Retrieving composition of combinations
@@ -384,97 +391,11 @@ combs_list <- combs_with(markers=c('Marker1', 'Marker3'), markers_table = tab)
 combs_list
 ```
 
-# Code snippets {#snipp}
-
-In this section we offer code insights taking advantage of the long format of the `data_long` object; starting from here the user can further customize plots and data summaries returned by the combiroc functions.
-
-## Plotting of intensities of individual markers {#plot_int}
-
-A quick plotting overview of individual marker values can be done with a scatter plot using the library `ggplot2`. Here is an example for the marker "Marker2":
-
-```{r, message=FALSE}
-library(dplyr) # needed for the filter() function and %>% operator
-library(ggplot2)
-
-myMarker <- "Marker2"
-
-data_long %>%
-  filter(Markers == myMarker) %>%
-  ggplot(aes(x= Patient.ID, y=Values)) +
-  geom_point(aes(color=Class)) +
-  labs(title=myMarker, x ="Samples") +
-  scale_x_discrete(labels = NULL, breaks = NULL)
-```
-
-## Summary statistics of individual markers {#sum_stats}
-
-Further markers exploration can be done using other packages' functions such as `group_by()`, `summarize()` and `ggplot()` on the the `data_long` dataframe.
-As an example, a few summary statistics can be computed for each marker of both classes, separately, as follow (the libraries `dplyr` and `moments` are needed). Numbers in this table are those behind the box plot obtained with `distr$boxplot` as seen before.
-
-```{r, message=FALSE}
-library(dplyr)
-library(moments) # needed for skewness() function
-
-data_long %>%
-  group_by(Markers, Class) %>%
-  summarize(Mean = mean(Values),
-            Min = min(Values),
-            Max = max(Values),
-            Sd = sd(Values),
-            CV = sd(Values)/mean(Values),
-            First_Quart. = quantile(Values)[2],
-            Median = median(Values),
-            Third_Quart. = quantile(Values)[4],
-            Skewness = skewness(Values))
-```
-
-
-## Bubble plot of all markers' combinations {#bubble}
-
-The following code can be used to plot a "bubble plot" of the markers combinations according to sensitivity (SE), specificity (SP) and size (number of markers in each combination).
-All these plotting functions take as input the `mks` dataframe obtained with the `se_sp()` function (see above) and containing the SE and SP values for cases and controls in all marker combinations. The original `mks` dataframe can be customly filtered to plot only a subset of combinations meeting specific criteria.  
-
-```{r, message=FALSE}
-library(dplyr) # needed for the filter() function and %>% operator
-library(ggplot2)
-
-mks %>% 
-  ggplot(aes(x = `SP_B`, y = `SE_A`, size = `#Markers` )) +
-  geom_point(alpha=0.5) +
-  scale_size(range = c(5, 15), name="# of markers") +
-  scale_x_continuous(limits = c(0,100)) +
-  scale_y_continuous(limits = c(0,100)) +
-  labs(x ="specificity", y = "sensitivity")
-```
-
-## Bubble plot of the "Gold" combinations {#bubblegold}
-
-If the user wants to customize the plot to highlight the "Gold" combinations (as it is obtained with `rmks$bubble_chart`), the following code can be used:
-
-```{r, message=FALSE}
-library(dplyr) # needed for the mutate() function and %>% operator
-library(ggplot2)
-
-min_SE <- 70 # choosen SE cutoff (as in the web-app slider)
-min_SP <- 85 # choosen SP cutoff (as in the web-app slider)
-
-library(dplyr)
-
-mks %>%
-  mutate(Combo = ifelse((`SP_B`>min_SP & `SE_A`>min_SE),"gold","below_thr")) %>% 
-  ggplot(aes(x = `SP_B`, y = `SE_A`, size = `#Markers`, color = Combo)) +
-  geom_point(alpha=0.3) +
-  scale_size(range = c(5, 15), name="# of markers") +
-  scale_x_continuous(limits = c(0,100)) +
-  scale_y_continuous(limits = c(0,100)) +
-  labs(x ="specificity", y = "sensitivity") +
-  guides(color = guide_legend(order=2),
-         size = guide_legend(order=1)) +
-  geom_vline(xintercept = min_SP, linetype="dotted", color = "grey", size=1) +
-  geom_hline(yintercept = min_SE, linetype="dotted", color = "grey", size=1) +
-  scale_color_manual(values=c("blue", "gold")) +
-  theme_light()
-```
-
-
 Back to the [top](#top) of this doc
+
+Go to [Signature refining tutorial](https://ingmbioinfo.github.io/combiroc/articles/combiroc_vignette_2.html)
+
+Session Info for this vignette:
+```{r}
+sessionInfo()
+```

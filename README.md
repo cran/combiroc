@@ -1,35 +1,53 @@
-<img src="inst/www/combiroc.png" align="right" alt="" width="120" />
+<img src="man/figures/combiroc.png" align="right" alt="" width="120" />
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/ingmbioinfo/combiroc/workflows/R-CMD-check/badge.svg)](https://github.com/ingmbioinfo/combiroc/actions)
-[![Travis build status](https://travis-ci.com/ingmbioinfo/combiroc.svg?branch=master)](https://travis-ci.com/ingmbioinfo/combiroc)
+[![pages-build-deployment](https://github.com/ingmbioinfo/combiroc/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/ingmbioinfo/combiroc/actions/workflows/pages/pages-build-deployment)
 [![Lifecycle:experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental-1)
-[![](https://img.shields.io/github/last-commit/ingmbioinfo/combiroc.svg)](https://github.com/ingmbioinfo/combiroc/commits/master)
-[![Codecov test coverage](https://codecov.io/gh/ingmbioinfo/combiroc/branch/master/graph/badge.svg)](https://codecov.io/gh/ingmbioinfo/combiroc?branch=master)
+[![Codecov test coverage](https://codecov.io/gh/ingmbioinfo/combiroc/branch/master/graph/badge.svg)](https://app.codecov.io/gh/ingmbioinfo/combiroc?branch=master)
 <!-- badges: end -->
 
-# CombiROC
+# Combiroc
 
-CombiROC is a totally new music in multi-markers analysis: an R package for efficient and easy combinatorial selection of biomarkers and sensitivity/specificity-driven prioritization of features. 
+The combiroc package is a totally new music in multi-markers analysis: an R package for efficient and easy combinatorial selection of biomarkers and sensitivity/specificity-driven prioritization of features. 
+
+Latest version introduces new features to work __on single-cell RNAseq datasets__ too, selecting smaller markers sub-signatures that can be used to efficiently identify and annotate cell clusters. 
 
 This is the development version of CombiROC package (combiroc), code in this repo is work in progress and it is uploaded here "as-is" with no warranties implied. Improvements and new features will be added on a regular basis, please check on this github page for new features and releases. 
 
-The CombiROC approach was first published by [Mazzara et al. Scientific Reports 2017](https://www.nature.com/articles/srep45477) as a Shiny app. A description of the analitycal protocol is also published in [Bombaci & Rossi, Methods Mol Biol 2019](https://link.springer.com/protocol/10.1007%2F978-1-4939-9164-8_16).
-The Shiny web-app version of CombiROC is still available at [combiroc.eu](http://combiroc.eu/), but it has limited features (as well as low computational power) and is not further maintained. For full capabilities, new and improved features and customized analyses is advisable to install this package on your own machines.
+The CombiROC approach was first released as a Shiny Application which is still available at [combiroc.eu](http://combiroc.eu/) but it has limited features as well as low computational power and is __not further maintained__. If you need to cite the web-app please refer to [**Mazzara et al.** Scientific Reports 2017](https://www.nature.com/articles/srep45477) and [**Bombaci & Rossi**, Methods Mol Biol 2019](https://link.springer.com/protocol/10.1007/978-1-4939-9164-8_16).
 
-## Installation
+For full capabilities and customized analyses **we suggest to use the R package** instead. You can install the combiroc package from  [CRAN](https://CRAN.R-project.org/package=combiroc) or, for all new and improved workflow features, the latest development version from this repo (see below). 
+
+If you are using the combiroc **package** in your research, please cite our **_"Less is more"_ bioRxiv preprint**: [**Ferrari et al.** *Combiroc: when 'less is more' in bulk and single cell marker signatures*. bioRxiv 2022.01.17.476603; doi: https://doi.org/10.1101/2022.01.17.476603](https://www.biorxiv.org/content/10.1101/2022.01.17.476603v2) 
+
+### Combiroc bioRxiv preprint Supplementary material
+
+The [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.01.17.476603v2) preprint's Supplementary Material 1 and 2 can be accessed here:  
+
+* __Supplementary Material 1__ (Standard vignette): [Standard worlkflow](https://ingmbioinfo.github.io/combiroc/articles/combiroc_vignette_1.html). 
+* __Supplementary Material 2__ (Additional vignette): [scRNAseq workflow](https://ingmbioinfo.github.io/combiroc/articles/combiroc_vignette_2.html). 
+
+
+## Installation (from CRAN)
+
+Be aware that CRAN version is not necessarily in sync with the development version. Documentation on these pages refers to the latest development version, if you install combiroc from CRAN please refer to documentation from CRAN's release of combiroc.
 
 ```r
-# First, install remotes from CRAN and run it
+# You can install combiroc pulling it from CRAN:
+install.packages("combiroc")
+```
+### Development version
+
+```r
+# To install the most recent development version from this repository install "remotes" first:
 install.packages("remotes")
 library(remotes)
-
-# Then install the development version of CombiROC from GitHub
-remotes::install_github("ingmbioinfo/combiroc", 
-                        dependencies = TRUE, build_vignettes = TRUE)
-                        
 # remotes is a lightweight replacement of install functions from devtools
 # if you already have devtools, you can also use devtools::install_github() 
+
+# Then install the development version of CombiROC:
+remotes::install_github("ingmbioinfo/combiroc", 
+                        dependencies = TRUE, build_vignettes = TRUE)
 ```
 
 ## Full Documentation - Tutorial
@@ -67,14 +85,12 @@ distr$Density_summary
 distr$ROC
 head(distr$Coord, n=10)
 
-# combinatorial analysis
-tab <- combi(data, signalthr = 407, combithr = 1)
+# combinatorial analysis, indicatinf case class anf for combinations of up to 3 markers:
+tab <- combi(data, signalthr = 328, combithr = 1,
+             case_class = "A", max_length = 3)
 
-# SE & SP computation
-mks <- se_sp(data, tab)
-
-# ranked combinations
-rmks <- ranked_combs(data, mks, case_class = 'A', min_SE = 40, min_SP = 80)
+# ranked combinations              
+rmks <- ranked_combs(tab, min_SE = 40, min_SP = 80)
 
 # check ranked combinations
 rmks$table
